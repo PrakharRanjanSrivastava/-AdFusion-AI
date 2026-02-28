@@ -12,18 +12,18 @@ const clerkWebhooks = async(req: Request ,res:Response)=>{
         const{data,type}=evt;
 
         switch (type) {
-            case "user.created":{
-                await prisma.user.create({
-                    data: {
-                        id:data.id,
-                        email:data?.email_addresses[0]?.email_address,
-                        name:data?.first_name + " " + data?.last_name,
-                        image: data?.image_url,
-
-                    }
-                })
-                break;
-            }
+            case "user.created": {
+    await prisma.user.create({
+        data: {
+            id: data.id,
+            email: data?.email_addresses?.[0]?.email_address || "no-email@example.com", 
+            name: (data?.first_name || "") + " " + (data?.last_name || ""),
+            image: data?.image_url || "",
+            credits: 80 // <--- ADD THIS EXACT LINE!
+        }
+    })
+    break;
+}
                  case "user.updated":{
                 await prisma.user.update({
                     where:{
