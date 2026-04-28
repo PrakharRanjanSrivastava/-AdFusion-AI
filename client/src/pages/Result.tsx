@@ -26,33 +26,37 @@ const [ loading, setLoading] = useState(true)
 const [ isGenerating,setIsGenerating] = useState(false)
 
 const fetchProjectData = async()=>{
-  try {
-    const token = await getToken()
-    const {data} = await api.get(`/api/project/${projectId}`,{headers:{Authorization: `Bearer ${token}`}})
-    setProjectData(data.project.isGenerating)
-    setLoading(false)
-    
-  } catch (error:any) {
-    toast.error(error?.response?.data?.message || error.message);
-    console.log(error);
-    
-  }
-    
+   try {
+     const token = await getToken()
+     const {data} = await api.get(`/api/project/${projectId}`,{headers:{Authorization: `Bearer ${token}`}})
+     
+     // WRONG: setProjectData(data.project.isGenerating)
+     // RIGHT:
+     setProjectData(data.project)
+     setLoading(false)
+     
+   } catch (error:any) {
+     toast.error(error?.response?.data?.message || error.message);
+     console.log(error);
+   }
 }
 
 const handleGenerateVideo=async()=>{
-    setIsGenerating(true)
-    try {
-      const token = await getToken();
-      const {data} =await api.post('/api/poject/video',{projectId},{headers:{Authorization: `Bearer ${token}`}})
-      toast.success(data.message)
-      setIsGenerating(false )
-      
-    } catch (error:any) {
-    toast.error(error?.response?.data?.message || error.message);
-    console.log(error);
-      
-    }
+     setIsGenerating(true)
+     try {
+       const token = await getToken();
+       
+       // WRONG: const {data} =await api.post('/api/poject/video',{projectId}...
+       // RIGHT:
+       const {data} =await api.post('/api/project/video',{projectId},{headers:{Authorization: `Bearer ${token}`}})
+       
+       toast.success(data.message)
+       setIsGenerating(false )
+       
+     } catch (error:any) {
+       toast.error(error?.response?.data?.message || error.message);
+       console.log(error);
+     }
 }
 
 useEffect(()=>{

@@ -28,24 +28,33 @@ const {openSignIn,openSignUp}=useClerk();
     ];
 
 
-    const getUserCredits=async()=>{
-       try {
+   const getUserCredits = async () => {
+    try {
+        console.log("1. Starting to fetch credits..."); // Checkpoint 1
+        
         const token = await getToken();
-        const {data} = await api.get('/api/user/credits',{headers:{Authorization: `Bearer ${token}`}})
+        console.log("2. Token generated:", token ? "Success" : "Failed"); // Checkpoint 2
+        
+        console.log("3. Calling backend API..."); // Checkpoint 3
+        const { data } = await api.get('/api/user/credits', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        console.log("4. Backend responded with:", data); // Checkpoint 4
         setCredits(data.credits);
-        
-       } catch (error:any) {
-        toast.error(error?.response?.data?.message || error.message)
-        console.log(error);
-        
-       }
 
-       useEffect(()=>{
-        if(user){
-            (async () => await getUserCredits())();
-        }
-       },[user,pathname])
+    } catch (error: any) {
+        toast.error(error?.response?.data?.message || error.message);
+        console.error("API Error:", error);
     }
+}
+
+useEffect(() => {
+    console.log("UseEffect triggered. Is user loaded?", !!user);
+    if (user) {
+        (async () => await getUserCredits())();
+    }
+}, [user, pathname]);
         
 
 

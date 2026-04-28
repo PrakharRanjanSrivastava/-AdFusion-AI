@@ -145,18 +145,22 @@ res.json({projectId: project.id  })
 
 
 
-    } catch (error: any) {
-        if(tempProjectId!){
+    // Look near line 149 in your catch block
+     } catch (error: any) {
+         // WRONG: if(tempProjectId!){
+         // RIGHT:
+         if(tempProjectId){
 
-            //update project status amd error message
-            await prisma.project.update({
-                where: {id: tempProjectId},
-                data: {
-                    isGenerating: false,
-                    error: error.message
-                }
-            })
-        }
+             //update project status and error message
+             await prisma.project.update({
+                 where: {id: tempProjectId},
+                 data: {
+                     isGenerating: false,
+                     error: error.message
+                 }
+             })
+         }
+// ... rest of the catch block
 
         if(isCreditDeducted){
             //add credit back
