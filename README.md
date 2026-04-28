@@ -1,4 +1,4 @@
-# Aifution 🚀
+# Aifusion 🚀
 **An AI-Powered SaaS for Automated Ad Creation and Animation.**
 
 ## 🌟 Key Features
