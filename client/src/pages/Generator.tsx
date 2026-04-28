@@ -46,9 +46,10 @@ const navigate = useNavigate()
              formData.append('productName',productName) 
              formData.append('productDescription',productDescription)
              formData.append('aspectRatio',aspectRatio)
-             formData.append('userPrompt',userPrompt)
-             formData.append('productImage',productImage)
-             formData.append('modelImage',modelImage)
+             formData.append('userPrompt', userPrompt)
+// Append both files to the "images" field so Multer's upload.array('images', 2) catches them
+formData.append('images', productImage)
+formData.append('images', modelImage)
 
              const token = await getToken()
              const {data} = await api.post('/api/project/create',formData ,{headers:{Authorization: `Bearer ${token}`}})

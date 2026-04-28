@@ -1,4 +1,5 @@
 import {Request,Response} from 'express'
+import { getAuth } from '@clerk/express';
 import { prisma } from '../configs/prisma.js';
 import * as Sentry from "@sentry/node";
 import {v2  as cloudinary       } from 'cloudinary'
@@ -143,61 +144,57 @@ await prisma.project.update({
 
 res.json({projectId: project.id  })
 
-
-
-    // Look near line 149 in your catch block
-     } catch (error: any) {
-         // WRONG: if(tempProjectId!){
-         // RIGHT:
-         if(tempProjectId){
-
-             //update project status and error message
-             await prisma.project.update({
-                 where: {id: tempProjectId},
-                 data: {
-                     isGenerating: false,
-                     error: error.message
-                 }
-             })
-         }
-// ... rest of the catch block
+    } catch (error: any) {
+        if(tempProjectId){
+            //update project status and error message
+            await prisma.project.update({
+                where: {id: tempProjectId},
+                data: {
+                    isGenerating: false,
+                    error: error.message
+                }
+            })
+        }
 
         if(isCreditDeducted){
-            //add credit back
-            await prisma.user.update({
-                where: {id: userId},
-                data: {credits: {increment: 5}}
-            })
+            const { userId } = getAuth(req);
+            if (userId) {
+                //add credit back
+                await prisma.user.update({
+                    where: {id: userId},
+                    data: {credits: {increment: 5}}
+                })
+            }
         }
         Sentry.captureException(error);
         res.status(500).json({message: error.code || error.message})
         
     }
 }
-export const createVideo = async (req: Request, res: Response)=> {
-const {userId} =req.auth()
-const { projectId}=req.body;
-let isCreditDeducted = false;
-    
-const user = await prisma.user.findUnique({
-    where: {id: userId}
-})
-if(!user || user.credits<10){
-    return res.status(401).json({message: 'insufficient credits'})
-
-}
-
-//deduct credits for video generation
-
-await prisma.user.update({where: { id: userId},
-data:{credits: {decrement: 10}
-}}).then(()=>{isCreditDeducted = true}); 
-
-    
-
-
+export const createVideo = async (req: Request, res: Response): Promise<any> => {
+    const { projectId}=req.body;
+    let isCreditDeducted = false;
 
     try {
+        const { userId } = getAuth(req);
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: {id: userId}
+        })
+        if(!user || user.credits<10){
+            return res.status(401).json({message: 'insufficient credits'})
+        }
+
+        //deduct credits for video generation
+        await prisma.user.update({
+            where: { id: userId},
+            data:{credits: {decrement: 10}}
+        });
+        isCreditDeducted = true;
+
         const project = await prisma.project.findUnique({
             where: {id: projectId,userId},
             include:{user: true}
@@ -216,7 +213,7 @@ data:{credits: {decrement: 10}
             data: {isGenerating: true}
         })
 
-        const prompt=`make the person showcase the product which is ${project.productName} ${project.productDescription && `and Product Description : ${project.productDescription} `}`
+        const prompt=`make the person showcase the product which is ${project.productName} ${project.productDescription ? `and Product Description : ${project.productDescription} ` : ''}`
 
         const model = 'veo-3.1-generate-preview'
 
@@ -291,9 +288,8 @@ data:{credits: {decrement: 10}
 
         
     } catch (error: any) {
-       
-
-            //update project status amd error message
+        if(projectId){
+            //update project status and error message
             await prisma.project.update({
                 where: {id: projectId},
                 data: {
@@ -301,14 +297,17 @@ data:{credits: {decrement: 10}
                     error: error.message
                 }
             })
-        
+        }
 
         if(isCreditDeducted){
-            //add credit back
-            await prisma.user.update({
-                where: {id: userId},
-                data: {credits: {increment: 10}}
-            })
+            const { userId } = getAuth(req);
+            if (userId) {
+                //add credit back
+                await prisma.user.update({
+                    where: {id: userId},
+                    data: {credits: {increment: 10}}
+                })
+            }
         }
         Sentry.captureException(error);
         res.status(500).json({message: error.code || error.message})
@@ -333,9 +332,12 @@ export const getAllPublicProjects  = async (req: Request, res: Response)=> {
         
     }
 }
-export const deleteProject = async (req: Request, res: Response)=> {
+export const deleteProject = async (req: Request, res: Response): Promise<any> => {
     try {
-        const {userId} = req.auth();
+        const { userId } = getAuth(req);
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
         const { projectId} = req.params;
         const project = await prisma.project.findUnique({
             where: {id: projectId, userId}
